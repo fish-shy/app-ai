@@ -37,7 +37,8 @@ export async function jalankanKiosDemo(o: { hariIni: string; opsi?: OpsiDemo; je
     }
     if (!pengemudi) return;
     if (d.t === "pilih") return pengemudi.layar({ tipe: "SENTUH_OPSI", opsi: d.opsi });
-    return pengemudi.layar({ tipe: d.nama === "ulangi" ? "TOMBOL_ULANGI" : "TOMBOL_PETUGAS" });
+    if (d.t === "ucap") return pengemudi.layar({ tipe: "UCAPAN_PASIEN", transkrip: d.transkrip });
+    if (d.t === "tombol") return pengemudi.layar({ tipe: d.nama === "ulangi" ? "TOMBOL_ULANGI" : "TOMBOL_PETUGAS" });
   });
 
   return { layar, kios, tutup };

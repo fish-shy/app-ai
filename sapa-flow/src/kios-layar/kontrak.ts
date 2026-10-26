@@ -37,6 +37,7 @@ export const DariKiosSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("mulai") }),
   z.object({ t: z.literal("tombol"), nama: z.enum(["ulangi", "petugas"]) }),
   z.object({ t: z.literal("pilih"), opsi: z.string().max(40) }),
+  z.object({ t: z.literal("ucap"), transkrip: z.string().trim().min(1).max(1_000) }),
 ]);
 export type DariKios = z.infer<typeof DariKiosSchema>;
 

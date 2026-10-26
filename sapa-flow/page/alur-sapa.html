@@ -198,6 +198,7 @@ footer a { color: var(--brand); }
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="var(--brand)"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="var(--brand)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
           <div><p id="kSpeak"></p><p class="meta" id="kMeta"></p></div>
         </div>
+        <audio id="kAudio" preload="metadata"></audio>
         <div class="controls">
           <button class="btn" id="prev" type="button">← Sebelumnya</button>
           <button class="btn primary" id="next" type="button">Berikutnya →</button>
@@ -333,7 +334,13 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const fmt = (x) => x.toFixed(2).replace(".", ",");
 
-let si = 0, fi = 0, timer = null;
+let si = 0, fi = 0, timer = null, audioUrutan = 0;
+const AUDIO_LANGKAH = {
+  SAPA_IZIN: "selamat datang.mp3",
+  MINTA_KARTU: "letakan kartu.mp3",
+  VERIFIKASI_WAJAH: "hadap kamera.mp3",
+  TANYA_KUNJUNGAN: "wajah cocok.mp3",
+};
 
 $("hdrAva").innerHTML = AVATAR.menyapa;
 $("facts").innerHTML = [["9", "keadaan"], ["25/25", "uji lulus"], ["6.000", "alur acak diuji"], ["7", "skenario"], ["40", "ujaran evaluasi"]]
@@ -362,6 +369,20 @@ function render(gantiSkenario) {
   } else { card.hidden = true; $("kStage").classList.remove("with-card"); }
   $("kSpeak").textContent = "“" + f.ucapan + "”";
   $("kMeta").textContent = `Diucapkan lewat speaker · tempo ${String(f.tempo).replace(".", ",")}× · pose “${f.ekspresi}”`;
+  const audio = $("kAudio");
+  const namaAudio = AUDIO_LANGKAH[f.keadaan];
+  const urutan = ++audioUrutan;
+  audio.pause();
+  audio.currentTime = 0;
+  if (namaAudio) {
+    audio.src = "../voice/" + encodeURIComponent(namaAudio);
+    audio.play().catch((e) => {
+      if (urutan !== audioUrutan) return;
+      $("kMeta").textContent += e.name === "NotAllowedError" ? " · klik Berikutnya untuk mengaktifkan suara" : " · audio gagal diputar";
+    });
+  } else {
+    audio.removeAttribute("src");
+  }
   // steps
   $("steps").innerHTML = s.frames.map((x, i) => `<li class="step ${i < fi ? "done" : i === fi ? "now" : "future"}" tabindex="0" data-i="${i}"><span class="n">${i + 1}</span><span><span class="t">${esc(x.peristiwa)}</span><br><span class="tag mono">→ ${NAMA_KEADAAN[x.keadaan]}</span></span></li>`).join("");
   const now = $("steps").querySelector(".now"); if (now) now.scrollIntoView({ block: "nearest" });

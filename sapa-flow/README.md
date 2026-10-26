@@ -19,6 +19,14 @@ npm run eval       # evaluasi pemahaman; Jev/Claude ikut bila EXPERIENTIAL_API_K
 npm run trace      # menulis jejak-skenario.json untuk halaman simulasi
 ```
 
+### Input suara di layar kios
+
+Jalankan `npm run kios`, buka `http://127.0.0.1:8789` di Chrome atau Edge, lalu tekan
+**Jawab dengan suara** saat Sapa menunggu jawaban. Browser memakai Web Speech API
+(`id-ID`) dan hanya mengirim transkrip final ke server; state machine tetap memprosesnya
+sebagai `UCAPAN_PASIEN`. Jika browser tidak mendukung SpeechRecognition atau izin mikrofon
+ditolak, tombol pilihan layar tetap bisa digunakan.
+
 ## Yang belum
 - Ambang (0,6 / 0,3 / 0,7 / darurat 0,3) masih nilai awal; kalibrasi dengan rekaman relawan lansia.
 - `eval/ujaran-lansia.json` ditulis tim, bukan rekaman pasien. Angka kata kunci (90%) optimistis.

@@ -58,6 +58,10 @@ footer { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px 24p
 footer button { min-height:104px; border-radius:24px; font-size:34px; font-weight:800; border:4px solid var(--ink); background:transparent; overflow-wrap:anywhere; padding:8px 16px; }
 footer button.petugas-btn { background:var(--ink); color:var(--bg); }
 footer button[aria-disabled="true"] { opacity:.45; }
+.suara { display:flex; align-items:center; gap:16px; }
+.suara button { flex:1; min-height:104px; border:4px solid var(--aksen); border-radius:24px; background:transparent; color:var(--ink); font:inherit; font-size:34px; font-weight:800; padding:8px 16px; }
+.suara button.merekam { background:var(--bahaya); color:var(--bg); border-color:var(--bahaya); }
+.suara-status { min-height:1.35em; color:var(--muted); font-size:24px; }
 
 /* Sempit (potret kecil / zoom 200%): huruf TIDAK mengecil di bawah ukuran minimum (subtitle ≥ 48px). */
 @media (max-width: 640px) {
@@ -76,6 +80,7 @@ footer button[aria-disabled="true"] { opacity:.45; }
   .kartu dt { font-size:20px; padding:6px 0; } .kartu dd { font-size:30px; padding:4px 0; }
   .kartu .ragu small { font-size:18px; }
   footer { gap:12px; padding:12px 16px 16px; } footer button { font-size:28px; min-height:96px; }
+  .suara { gap:8px; } .suara button { min-height:96px; font-size:28px; } .suara-status { font-size:20px; }
 }
 /* Pendek (lanskap kecil / zoom 200%): satu kolom, avatar kecil di samping subtitle, tombol tetap terlihat. */
 @media (max-height: 700px) {
@@ -134,6 +139,10 @@ const JUMLAH_FRAME = { idle:72, menyapa:48, mendengarkan:58, "memandu-wajah":48,
 const st = { tag:"SIAGA", opsi:[], subtitle:"Selamat datang. Sentuh layar untuk mulai.", ekspresi:"siaga", kartu:null, antrean:null, petugas:null, lampu:{ pemindai:false, wajah:false } };
 const el = (tag, kelas, teks) => { const e = document.createElement(tag); if (kelas) e.className = kelas; if (teks !== undefined) e.textContent = teks; return e; };
 const kirim = (d) => fetch("/tombol", { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify(d) });
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let pendengarSuara = null;
+let tombolSuara = null;
+let statusSuara = null;
 
 // ---------- avatar: WebM VP9 alpha, atau frame PNG
 const paksaPng = new URLSearchParams(location.search).get("avatar") === "png";
@@ -205,7 +214,34 @@ function gambar() {
       b.type = "button"; b.dataset.opsi = o.nilai; b.onclick = () => kirim({ t:"pilih", opsi:o.nilai }); g.append(b);
     });
     isi.append(g);
+    const suara = el("div", "suara");
+    tombolSuara = el("button", "", "Jawab dengan suara");
+    tombolSuara.type = "button";
+    statusSuara = el("span", "suara-status", SpeechRecognition ? "" : "Suara tidak didukung browser ini");
+    suara.append(tombolSuara, statusSuara);
+    isi.append(suara);
+    tombolSuara.disabled = !SpeechRecognition;
+    tombolSuara.onclick = mulaiDengar;
   }
+}
+function mulaiDengar() {
+  if (!SpeechRecognition || !tombolSuara || !statusSuara) return;
+  if (pendengarSuara) { pendengarSuara.stop(); return; }
+  const r = new SpeechRecognition();
+  pendengarSuara = r;
+  r.lang = "id-ID"; r.interimResults = false; r.maxAlternatives = 1;
+  tombolSuara.classList.add("merekam"); tombolSuara.textContent = "Mendengarkan...";
+  statusSuara.textContent = "Silakan jawab sekarang";
+  r.onresult = (e) => {
+    const transkrip = e.results[0][0].transcript.trim();
+    if (transkrip) kirim({ t:"ucap", transkrip });
+  };
+  r.onerror = (e) => { statusSuara.textContent = e.error === "not-allowed" ? "Izin mikrofon ditolak" : "Suara belum terbaca, silakan ulangi"; };
+  r.onend = () => {
+    pendengarSuara = null;
+    if (tombolSuara) { tombolSuara.classList.remove("merekam"); tombolSuara.textContent = "Jawab dengan suara"; }
+  };
+  r.start();
 }
 document.getElementById("ulangi").onclick = () => { if (st.tag !== "SIAGA") kirim({ t:"tombol", nama:"ulangi" }); };
 document.getElementById("petugas").onclick = () => { if (st.tag !== "SIAGA") kirim({ t:"tombol", nama:"petugas" }); };
